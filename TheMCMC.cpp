@@ -366,10 +366,10 @@ Vector3i Nsim(double mu, double kappa, double theta, double sigmav, double rho, 
 	double B1 = V[1] - V[0] - kappa * (theta - V[0]) * Delta - xiv;
 	double B2 = V[1] - V[0] - kappa * (theta - V[0]) * Delta - xic[1];
 	double B3 = V[1] - V[0] - kappa * (theta - V[0]) * Delta;
-	Dir[0] = exp(-1 / 2 * (rho2min) * (pow(A1, 2) - 2 * rho * A1 * B3 + pow(B3, 2))) * lambda[0];
-	Dir[1] = exp(-1 / 2 * (rho2min) * (pow(A3, 2) - 2 * rho * A3 * B1 + pow(B1, 2))) * lambda[1];
-	Dir[2] = exp(-1 / 2 * (rho2min) * (pow(A2, 2) - 2 * rho * A2 * B2 + pow(B2, 2))) * lambda[2];
-	Dir[3] = exp(-1 / 2 * (rho2min) * (pow(A3, 2) - 2 * rho * A3 * B2 + pow(B3, 2))) * lambda[3];
+	Dir[0] = exp(-1 / (2 * rho2min) * (pow(A1, 2) - 2 * rho * A1 * B3 + pow(B3, 2))) * lambda[0];
+	Dir[1] = exp(-1 / (2 * rho2min) * (pow(A3, 2) - 2 * rho * A3 * B1 + pow(B1, 2))) * lambda[1];
+	Dir[2] = exp(-1 / (2 * rho2min) * (pow(A2, 2) - 2 * rho * A2 * B2 + pow(B2, 2))) * lambda[2];
+	Dir[3] = exp(-1 / (2 * rho2min) * (pow(A3, 2) - 2 * rho * A3 * B2 + pow(B3, 2))) * lambda[3];
 	default_random_engine rand;
 	uniform_real_distribution<double> Unif(0.0, 1.0);
 	double u = Unif(rand);
