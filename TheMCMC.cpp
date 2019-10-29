@@ -486,7 +486,7 @@ int main()
 		Y.push_back(num);
 	}
 	const int T = Y.size() - 1;
-	const int sims = 5000;
+	const int sims = 2000;
 	const int burnin = 1000;
 	const int M = sims + burnin;
 	double Delta = 1.0;
@@ -519,19 +519,19 @@ int main()
 	nucstart(1, 0) = 0.0;
 	nucstart(1, 1) = 0.0001;
 	Vector4d lambstart(0.02, 0.02, 0.02, 0.94);
-	mu.push_back(0.0005);
-	kappa.push_back(0.02);
-	theta.push_back(0.0001);
-	sigmav.push_back(0.1);
-	rho.push_back(-0.4);
-	omega2 = pow(sigmav.back(), 2) * (1 - pow(rho.back(), 2));
-	etayplus.push_back(25.0);
-	etayminus.push_back(20.0);
-	etavplus.push_back(100);
-	etavminus.push_back(400);
-	muc.push_back(mucstart);
-	nuc.push_back(nucstart);
-	lambda.push_back(lambstart);
+	double muburn = 0.0005;
+	double thetaburn = 0.02;
+	double kappaburn = 0.0001;
+	double sigmavburn = 0.1;
+	double rhoburn = -0.4;
+	omega2 = pow(sigmavburn, 2) * (1 - pow(rhoburn, 2));
+	double etayplusburn = 25.0;
+	double etayminus = 20.0;
+	double etavplus = 100.0;
+	double etavminus = 400.0;
+	Vector2d mucburn = mucstart;
+	Matrix2d nucburn = nucstart;
+	Vector4d lambdaburn = lambstart;
 	Vector2d ZeroF(0.0, 0.0);
 	Vector3i ZeroI(0, 0, 0);
 	vector<double> xiycurr(T);
@@ -553,54 +553,123 @@ int main()
 		Bcurr[t] = 1.0;
 	}
 	Vcurr[T] = 0.0001;
-	xiy.push_back(xiycurr);
-	xiv.push_back(xivcurr);
-	xic.push_back(xiccurr);
-	N.push_back(Ncurr);
-	V.push_back(Vcurr);
-	B.push_back(Bcurr);
 	for (int i = 1; i <= M; i++){
-		mu.push_back(musim(kappa.back(), theta.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
-		theta.push_back(thetasim(mu.back(), kappa.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
-		kappa.push_back(kappasim(mu.back(), theta.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
-		//sigvrhosim = sigmavrhosim(mu.back(), kappa.back(), theta.back(), Y, Vcurr, Jy, Jv);
-		phi = phivsim(mu.back(), kappa.back(), theta.back(), omega2, Y, Vcurr, Jy, Jv);
-		omega2 = omega2sim(mu.back(), kappa.back(), theta.back(), phi, Y, Vcurr, Jy, Jv);
-		//sigmav.push_back(sigvrhosim(0));
-		//rho.push_back(sigvrhosim(1));
-		sigmav.push_back(sqrt(pow(phi, 2) + omega2));
-		rho.push_back(phi / sigmav.back());
-		etassim = etasim(xiycurr, sqrt(etayplus.back() / etayminus.back()), 2.0, 4.0);
-		etayplus.push_back(etassim(0));
-		etayminus.push_back(etassim(1));
-		etassim = etasim(xivcurr, sqrt(etavplus.back() / etavminus.back()), 3.0, 1.0);
-		etavplus.push_back(etassim(0));
-		etavminus.push_back(etassim(1));
-		muc.push_back(mucsim(nuc.back(), xiccurr, Bcurr));
-		nuc.push_back(nucsim(muc.back(), xiccurr, Bcurr));
-		lambda.push_back(lambdasim(Ncurr));
-		for (int t = 0; t < T; t++) {
-			double Yt[2];
-			double Vt[2];
-			Yt[0] = Y[t];
-			Yt[1] = Y[t + 1];
-			Vt[0] = Vcurr[t];
-			Vt[1] = Vcurr[t + 1];
-			xiycurr[t] = xisim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), etayplus.back(), etayminus.back(), Yt, Vt, Ncurr[t][0]);
-			xivcurr[t] = xisim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), etavplus.back(), etavminus.back(), Yt, Vt, Ncurr[t][1]);
-			xiccurr[t] = xicsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), muc.back(), nuc.back(), Yt, Vt, Ncurr[t][2], Bcurr[t]);
-			Ncurr[t] = Nsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, xiycurr[t], xivcurr[t], xiccurr[t], lambda.back());
-			Jy[t] = Ncurr[t][0] * xiycurr[t] + Ncurr[t][2] * xiccurr[t][0];
-			Jv[t] = Ncurr[t][1] * xivcurr[t] + Ncurr[t][2] * xiccurr[t][1];
-			Vcurr[t] = Vsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, Jy[t], Jv[t], t);
-			Bcurr[t] = Bsim(xiccurr[t], muc.back(), nuc.back(), Bcurr[t]);
+		if (i > burnin + 1) {
+			mu.push_back(musim(kappa.back(), theta.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
+			theta.push_back(thetasim(mu.back(), kappa.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
+			kappa.push_back(kappasim(mu.back(), theta.back(), sigmav.back(), rho.back(), Y, Vcurr, Jy, Jv));
+			sigvrhosim = sigmavrhosim(mu.back(), kappa.back(), theta.back(), Y, Vcurr, Jy, Jv);
+			//phi = phivsim(mu.back(), kappa.back(), theta.back(), omega2, Y, Vcurr, Jy, Jv);
+			//omega2 = omega2sim(mu.back(), kappa.back(), theta.back(), phi, Y, Vcurr, Jy, Jv);
+			sigmav.push_back(sigvrhosim(0));
+			rho.push_back(sigvrhosim(1));
+			//sigmav.push_back(sqrt(pow(phi, 2) + omega2));
+			//rho.push_back(phi / sigmav.back());
+			etassim = etasim(xiycurr, sqrt(etayplus.back() / etayminus.back()), 2.0, 4.0);
+			etayplus.push_back(etassim(0));
+			etayminus.push_back(etassim(1));
+			etassim = etasim(xivcurr, sqrt(etavplus.back() / etavminus.back()), 3.0, 1.0);
+			etavplus.push_back(etassim(0));
+			etavminus.push_back(etassim(1));
+			muc.push_back(mucsim(nuc.back(), xiccurr, Bcurr));
+			nuc.push_back(nucsim(muc.back(), xiccurr, Bcurr));
+			lambda.push_back(lambdasim(Ncurr));
+			for (int t = 0; t < T; t++) {
+				Yt[0] = Y[t];
+				Yt[1] = Y[t + 1];
+				Vt[0] = Vcurr[t];
+				Vt[1] = Vcurr[t + 1];
+				xiycurr[t] = xisim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), etayplus.back(), etayminus.back(), Yt, Vt, Ncurr[t][0]);
+				xivcurr[t] = xisim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), etavplus.back(), etavminus.back(), Yt, Vt, Ncurr[t][1]);
+				xiccurr[t] = xicsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), muc.back(), nuc.back(), Yt, Vt, Ncurr[t][2], Bcurr[t]);
+				Ncurr[t] = Nsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, xiycurr[t], xivcurr[t], xiccurr[t], lambda.back());
+				Jy[t] = Ncurr[t][0] * xiycurr[t] + Ncurr[t][2] * xiccurr[t][0];
+				Jv[t] = Ncurr[t][1] * xivcurr[t] + Ncurr[t][2] * xiccurr[t][1];
+				Vcurr[t] = Vsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, Jy[t], Jv[t], t);
+				Bcurr[t] = Bsim(xiccurr[t], muc.back(), nuc.back(), Bcurr[t]);
+			}
+			xiy.push_back(xiycurr);
+			xiv.push_back(xivcurr);
+			xic.push_back(xiccurr);
+			N.push_back(Ncurr);
+			V.push_back(Vcurr);
 		}
-		xiy.push_back(xiycurr);
-		xiv.push_back(xivcurr);
-		xic.push_back(xiccurr);
-		N.push_back(Ncurr);
-		V.push_back(Vcurr);
-		B.push_back(Bcurr);
+		else if (i < burnin) {
+			muburn = musim(kappaburn, thetaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv);
+			thetaburn = thetasim(muburn, kappaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv);
+			kappaburn = kappasim(muburn, thetaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv);
+			sigvrhosim = sigmavrhosim(muburn, kappaburn, thetaburn, Y, Vcurr, Jy, Jv);
+			//phi = phivsim(muburn, kappaburn, thetaburn, omega2, Y, Vcurr, Jy, Jv);
+			//omega2 = omega2sim(muburn, kappaburn, thetaburn, phi, Y, Vcurr, Jy, Jv);
+			sigmavburn = sigvrhosim(0);
+			rhoburn = sigvrhosim(1);
+			//sigmavburn = sqrt(pow(phi, 2) + omega2);
+			//rhoburn = phi / sigmav.back();
+			etassim = etasim(xiycurr, sqrt(etayplusburn / etayminusburn), 2.0, 4.0);
+			etayplusburn = etassim(0);
+			etayminusburn = etassim(1);
+			etassim = etasim(xivcurr, sqrt(etavplusburn / etavminusburn), 3.0, 1.0);
+			etavplusburn = etassim(0);
+			etavminusburn = etassim(1);
+			mucburn = mucsim(nucburn, xiccurr, Bcurr);
+			nucburn = nucsim(mucburn, xiccurr, Bcurr);
+			lambdaburn = lambdasim(Ncurr);
+			for (int t = 0; t < T; t++) {
+				Yt[0] = Y[t];
+				Yt[1] = Y[t + 1];
+				Vt[0] = Vcurr[t];
+				Vt[1] = Vcurr[t + 1];
+				xiycurr[t] = xisim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, etayplusburn, etayminusburn, Yt, Vt, Ncurr[t][0]);
+				xivcurr[t] = xisim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, etayplusburn, etayminusburn, Yt, Vt, Ncurr[t][1]);
+				xiccurr[t] = xicsim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, mucburn, nucburn, Yt, Vt, Ncurr[t][2], Bcurr[t]);
+				Ncurr[t] = Nsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, xiycurr[t], xivcurr[t], xiccurr[t], lambda.back());
+				Jy[t] = Ncurr[t][0] * xiycurr[t] + Ncurr[t][2] * xiccurr[t][0];
+				Jv[t] = Ncurr[t][1] * xivcurr[t] + Ncurr[t][2] * xiccurr[t][1];
+				Vcurr[t] = Vsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, Jy[t], Jv[t], t);
+				Bcurr[t] = Bsim(xiccurr[t], muc.back(), nuc.back(), Bcurr[t]);
+			}
+		}
+		else {
+			mu.push_back(musim(kappaburn, thetaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv));
+			theta.push_back(thetasim(muburn, kappaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv));
+			kappaburn.push_back(kappasim(muburn, thetaburn, sigmavburn, rhoburn, Y, Vcurr, Jy, Jv));
+			sigvrhosim = sigmavrhosim(muburn, kappaburn, thetaburn, Y, Vcurr, Jy, Jv);
+			//phi = phivsim(muburn, kappaburn, thetaburn, omega2, Y, Vcurr, Jy, Jv);
+			//omega2 = omega2sim(muburn, kappaburn, thetaburn, phi, Y, Vcurr, Jy, Jv);
+			sigmav.push_back(sigvrhosim(0));
+			rho.push_back(sigvrhosim(1));
+			//sigmav.push_back(sqrt(pow(phi, 2) + omega2));
+			//rho.push_back(phi / sigmav.back());
+			etassim = etasim(xiycurr, sqrt(etayplusburn / etayminusburn), 2.0, 4.0);
+			etayplus.push_back(etassim(0));
+			etayminus.push_back(etassim(1));
+			etassim = etasim(xivcurr, sqrt(etavplusburn / etavminusburn), 3.0, 1.0);
+			etavplus.push_back(etassim(0));
+			etavminus.push_back(etassim(1));
+			muc.push_back(mucsim(nucburn, xiccurr, Bcurr));
+			nuc.push_back(nucsim(mucburn, xiccurr, Bcurr));
+			lambda.push_back(lambdasim(Ncurr));
+			for (int t = 0; t < T; t++) {
+				Yt[0] = Y[t];
+				Yt[1] = Y[t + 1];
+				Vt[0] = Vcurr[t];
+				Vt[1] = Vcurr[t + 1];
+				xiycurr[t] = xisim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, etayplusburn, etayminusburn, Yt, Vt, Ncurr[t][0]);
+				xivcurr[t] = xisim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, etayplusburn, etayminusburn, Yt, Vt, Ncurr[t][1]);
+				xiccurr[t] = xicsim(muburn, kappaburn, thetaburn, sigmavburn, rhoburn, mucburn, nucburn, Yt, Vt, Ncurr[t][2], Bcurr[t]);
+				Ncurr[t] = Nsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, xiycurr[t], xivcurr[t], xiccurr[t], lambda.back());
+				Jy[t] = Ncurr[t][0] * xiycurr[t] + Ncurr[t][2] * xiccurr[t][0];
+				Jv[t] = Ncurr[t][1] * xivcurr[t] + Ncurr[t][2] * xiccurr[t][1];
+				Vcurr[t] = Vsim(mu.back(), kappa.back(), theta.back(), sigmav.back(), rho.back(), Yt, Vt, Jy[t], Jv[t], t);
+				Bcurr[t] = Bsim(xiccurr[t], muc.back(), nuc.back(), Bcurr[t]);
+			}
+			xiy.push_back(xiycurr);
+			xiv.push_back(xivcurr);
+			xic.push_back(xiccurr);
+			N.push_back(Ncurr);
+			V.push_back(Vcurr);
+		}
+		
 	}
 	ofstream pfile("paramoutput.txt");
 		for (int i = 0; i <= sims; i++) {
